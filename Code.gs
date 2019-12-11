@@ -14,58 +14,60 @@ function createFormPerAssociate(title) {
   var associateFormFile = formFile.makeCopy(title, quarterlyFolder);
   var associateForm = FormApp.openById(associateFormFile.getId());
   associateForm.setTitle(title);
-  return associateForm;  
+  return associateForm;
 }
 
 function GenerateForms() {
-  
- 
   var range = reviewerSheet.getRange(1,1,reviewerSheet.getLastRow(),10);
 
   var associateForm;
 
   var project; // should add to form or email? (not currently used)
   var associateName;
-  var associateEmail;
+  var associateId;
   var managerEmail;
   var reviewers;
   var row;
   var rowValues;
+  var x;
   var now;
   var email; // helper while creating drafts rather than just sending the email
   var title;
-  
+
+  //for (var i=1; i < 2; i++){ // start with 1 - skip header row
   for (var i=1; i<range.getLastRow(); i++){ // start with 1 - skip header row
-  
     try {
       row = range.offset(i,0,1);
       rowValues = row.getValues()[0];
       // use names for field for readability...
       project = rowValues[0];
       associateName = rowValues[1];
-      associateEmail = rowValues[2];
-      managerEmail = rowValues[3]
-      reviewers = rowValues[4];
-      
+      associateId = rowValues[2];
+      managerEmail = rowValues[3] + "@redhat.com";
+      reviewers = rowValues[4].split(",").map(function(item) { return item.trim() + "@redhat.com" })
+
       // creeate Form for associate
-      title = Utilities.formatString(formTitleTemplate, associateName, associateEmail);
+      title = Utilities.formatString(formTitleTemplate, associateName, associateId);
 
       associateForm = createFormPerAssociate(title);
-      
+
       // flag as form created for tracking
       now = new Date();
       row.getCell(1,9).setFormula('=HYPERLINK("' + associateForm.getPublishedUrl() + '", "Form Created ' + now + '")');
-      
+
       // add manager as editor
       associateForm.addEditor(managerEmail);
-      
-      // send email to reviewers and cc manager (creates a draft, you need to send it)
-      email = GmailApp.createDraft(reviewers, title, "You are kindly ask to provide feedback via this form. Results will be visible only to the direct manager. " + associateForm.getPublishedUrl(), { cc: managerEmail });
-      //email.send();
-      row.getCell(1,10).setValue("Email Sent");
+
+      // send email to reviewers and cc manager
+      for (var j = 0; j < reviewers.length; j++) {
+        email = GmailApp.createDraft(reviewers[j], title, "You are kindly asked to provide feedback via this form.\n\n" + associateForm.getPublishedUrl() + "\n\nResults will be visible only to the direct lead of the reviewed person.\n\n-- \nFederico\n", { cc: managerEmail });
+        //row.getCell(1,10).setValue("Email Draft");
+        //email.send();
+        //row.getCell(1,10).setValue("Email Sent");
+      }
     }
     catch (err) {
       Logger.log("Error in line %s - %s", i+2, err.message); // +2 as array starts from zero and our first row is row 2.
     }
-  }  
+  }
 }
