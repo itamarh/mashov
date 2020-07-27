@@ -10,6 +10,10 @@ var quarterlyFolder = DriveApp.getFolderById("replace-this"); // Google Drive Fo
 var reviewerSheet = SpreadsheetApp.openById("replace-this").getSheetByName("Reviewers"); // Google spreadsheet with list of surveyes per associate
 var formTitleTemplate = "Q2FY20 Feedback Review - %s (%s)";
 
+var viewerEmail = ""; // ATM only editors are supported on google forms, in case it's required should be xxx@redhat.com
+var filterOnlyDirectsOf = Session.getActiveUser().getEmail();  // in case the value is "" it's ignored
+var emailSignature = "-- \n" + "replace-this" + "\n";
+
 function createFormPerAssociate(title) {
   var associateFormFile = formFile.makeCopy(title, quarterlyFolder);
   var associateForm = FormApp.openById(associateFormFile.getId());
@@ -46,6 +50,10 @@ function GenerateForms() {
       managerEmail = rowValues[3] + "@redhat.com";
       reviewers = rowValues[4].split(",").map(function(item) { return item.trim() + "@redhat.com" })
 
+      if (managerEmail != filterOnlyDirectsOf) {
+        continue; // skip
+      }
+
       // creeate Form for associate
       title = Utilities.formatString(formTitleTemplate, associateName, associateId);
 
@@ -57,10 +65,14 @@ function GenerateForms() {
 
       // add manager as editor
       associateForm.addEditor(managerEmail);
+      if (viewerEmail != managerEmail && viewerEmail != "") {
+        //associateForm.addViewer(viewerEmail); // viewers aren't supported
+        associateForm.addEditor(viewerEmail);
+      }
 
       // send email to reviewers and cc manager
       for (var j = 0; j < reviewers.length; j++) {
-        email = GmailApp.createDraft(reviewers[j], title, "You are kindly asked to provide feedback via this form.\n\n" + associateForm.getPublishedUrl() + "\n\nResults will be visible only to the direct lead of the reviewed person.\n\n-- \nFederico\n", { cc: managerEmail });
+        email = GmailApp.createDraft(reviewers[j], title, "You are kindly asked to provide feedback via this form.\n\n" + associateForm.getPublishedUrl() + "\n\nResults will be visible only to the direct lead of the reviewed person.\n\n" + emailSignature, { cc: managerEmail });
         //row.getCell(1,10).setValue("Email Draft");
         //email.send();
         //row.getCell(1,10).setValue("Email Sent");
