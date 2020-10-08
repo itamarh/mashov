@@ -2,13 +2,17 @@
 // Tried using the ContactsApp to get the Manager and full name for associate, but that does not seem to work.
 // This made it less clean for now on requiring to fill these fields in the spreadsheet.
 
+var formFileID = "";
+var quarterlyFolderID = "";
+var reviewerSheetID = "";
+var formTitleTemplate = "Q3CY20 Feedback Review - %s (%s)";
+
 // Identifiers are the relevant part of the URL when you open these from google drive
-var formFile = DriveApp.getFileById("replace-this"); // Survey form
-var quarterlyFolder = DriveApp.getFolderById("replace-this"); // Google Drive Folder to place all created survey forms in
+var formFile = DriveApp.getFileById(formFileID); // Survey form
+var quarterlyFolder = DriveApp.getFolderById(quarterlyFolderID); // Google Drive Folder to place all created survey forms in
 
 // Spreadsheet format header line is: Project/Team, Name, Email, Manager Email, Reviewers Email (comma separated). The script will update columns to the right with link to form and for email creation
-var reviewerSheet = SpreadsheetApp.openById("replace-this").getSheetByName("Reviewers"); // Google spreadsheet with list of surveyes per associate
-var formTitleTemplate = "Q2FY20 Feedback Review - %s (%s)";
+var reviewerSheet = SpreadsheetApp.openById(reviewerSheetID).getSheetByName("Reviewers"); // Google spreadsheet with list of surveyes per associate
 
 function createFormPerAssociate(title) {
   var associateFormFile = formFile.makeCopy(title, quarterlyFolder);
@@ -60,11 +64,11 @@ function GenerateForms() {
 
       // send email to reviewers and cc manager
       for (var j = 0; j < reviewers.length; j++) {
-        email = GmailApp.createDraft(reviewers[j], title, "You are kindly asked to provide feedback via this form.\n\n" + associateForm.getPublishedUrl() + "\n\nResults will be visible only to the direct lead of the reviewed person.\n\n-- \nFederico\n", { cc: managerEmail });
-        //row.getCell(1,10).setValue("Email Draft");
-        //email.send();
-        //row.getCell(1,10).setValue("Email Sent");
+        email = GmailApp.createDraft(reviewers[j], title, "You are kindly asked to provide feedback via this form.\n\n" + associateForm.getPublishedUrl() + "\n\nResults will be visible only to the direct lead/manager of the reviewed person.\n", { cc: managerEmail });
+        email.send();
       }
+      //row.getCell(1,10).setValue("Email Draft");
+      //row.getCell(1,10).setValue("Email Sent");
     }
     catch (err) {
       Logger.log("Error in line %s - %s", i+2, err.message); // +2 as array starts from zero and our first row is row 2.
